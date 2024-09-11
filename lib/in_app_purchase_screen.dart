@@ -105,7 +105,6 @@ class InAppPurchaseScreen extends StatelessWidget {
                         : isUpgrade
                         ? Colors.blue
                         : Colors.orange;
-
                     return ListTile(
                       title: Text(product.title),
                       contentPadding: EdgeInsets.zero,
