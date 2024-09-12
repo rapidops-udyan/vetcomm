@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vetcomm/home.dart';
 import 'package:vetcomm/in_app_purchase_screen.dart';
 
 void main() {
@@ -11,7 +12,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: InAppPurchaseScreen(),
+      home: Home(),
     );
   }
 }

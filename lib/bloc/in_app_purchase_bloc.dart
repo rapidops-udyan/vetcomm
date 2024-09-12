@@ -10,7 +10,9 @@ import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 
 part 'in_app_purchase_bloc.freezed.dart';
+
 part 'in_app_purchase_event.dart';
+
 part 'in_app_purchase_state.dart';
 
 class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
@@ -32,7 +34,7 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     final isAvailable = await _iap.isAvailable();
     if (Platform.isIOS) {
       final iosPlatformAddition =
-      _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+          _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
       await iosPlatformAddition.setDelegate(PaymentQueueDelegate());
     }
     if (!isAvailable) {
@@ -43,7 +45,7 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     }
 
     _subscription = _iap.purchaseStream.listen(
-          (purchases) => add(InAppPurchaseEvent.updatePurchases(purchases)),
+      (purchases) => add(InAppPurchaseEvent.updatePurchases(purchases)),
       onDone: () => _subscription.cancel(),
       onError: (error) => emit(state.copyWith(
           status: InAppPurchaseStatus.error, error: error.toString())),
@@ -56,7 +58,7 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
   Future<void> _onFetchProducts(_InAppPurchaseFetchProductsEvent event,
       Emitter<InAppPurchaseState> emit) async {
     final ProductDetailsResponse response =
-    await _iap.queryProductDetails(productIds);
+        await _iap.queryProductDetails(productIds);
 
     if (response.error != null) {
       emit(state.copyWith(
@@ -70,17 +72,23 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
 
   Future<void> _onRestorePurchases(_InAppPurchaseRestorePurchasesEvent event,
       Emitter<InAppPurchaseState> emit) async {
-    await _iap.restorePurchases();
+    try {
+      await _iap.restorePurchases();
+    } catch (e) {
+      if (e is SKError) {
+        print('SKError ${e.code}:${e.domain}:${e.userInfo}');
+      }
+    }
   }
 
   Future<void> _onBuyProduct(_InAppPurchaseBuyProductEvent event,
       Emitter<InAppPurchaseState> emit) async {
     final PurchaseParam purchaseParam =
-    _buildPurchaseParam(event.product, event.oldPurchaseDetails);
+        _buildPurchaseParam(event.product, event.oldPurchaseDetails);
 
     try {
       final bool success =
-      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+          await _iap.buyNonConsumable(purchaseParam: purchaseParam);
       if (!success) {
         emit(state.copyWith(
             status: InAppPurchaseStatus.error, error: 'Purchase failed'));
@@ -120,6 +128,9 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
   Future<void> _onUpdatePurchases(_InAppPurchaseUpdatePurchasesEvent event,
       Emitter<InAppPurchaseState> emit) async {
     for (var purchaseDetails in event.purchaseDetailsList) {
+      if (purchaseDetails.pendingCompletePurchase) {
+        await _iap.completePurchase(purchaseDetails);
+      }
       if (purchaseDetails.status == PurchaseStatus.pending) {
         emit(state.copyWith(status: InAppPurchaseStatus.loading));
       } else if (purchaseDetails.status == PurchaseStatus.error) {
@@ -143,7 +154,8 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
         }
       } else if (purchaseDetails.status == PurchaseStatus.canceled) {
         emit(state.copyWith(
-            status: InAppPurchaseStatus.cancelled, error: 'Purchase Cancelled'));
+            status: InAppPurchaseStatus.cancelled,
+            error: 'Purchase Cancelled'));
       }
     }
     emit(state.copyWith(status: InAppPurchaseStatus.ready));
@@ -154,7 +166,12 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
   }
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
+    if (Platform.isIOS) {
+      final iosPlatformAddition =
+          _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+      await iosPlatformAddition.setDelegate(null);
+    }
     _subscription.cancel();
     return super.close();
   }
