@@ -10,9 +10,7 @@ import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 
 part 'in_app_purchase_bloc.freezed.dart';
-
 part 'in_app_purchase_event.dart';
-
 part 'in_app_purchase_state.dart';
 
 class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
@@ -32,16 +30,17 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     emit(state.copyWith(status: InAppPurchaseStatus.loading));
 
     final isAvailable = await _iap.isAvailable();
-    if (Platform.isIOS) {
-      final iosPlatformAddition =
-          _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
-      await iosPlatformAddition.setDelegate(PaymentQueueDelegate());
-    }
     if (!isAvailable) {
       emit(state.copyWith(
           status: InAppPurchaseStatus.error,
           error: 'In-App Purchase not available'));
       return;
+    }
+
+    if (Platform.isIOS) {
+      final iosPlatformAddition =
+          _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+      await iosPlatformAddition.setDelegate(PaymentQueueDelegate());
     }
 
     _subscription = _iap.purchaseStream.listen(
@@ -75,9 +74,9 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     try {
       await _iap.restorePurchases();
     } catch (e) {
-      if (e is SKError) {
-        print('SKError ${e.code}:${e.domain}:${e.userInfo}');
-      }
+      emit(state.copyWith(
+          status: InAppPurchaseStatus.error,
+          error: 'Failed to restore purchases: ${e.toString()}'));
     }
   }
 
@@ -97,6 +96,40 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
       emit(state.copyWith(
           status: InAppPurchaseStatus.error,
           error: 'Failed to make purchase: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onUpdatePurchases(_InAppPurchaseUpdatePurchasesEvent event,
+      Emitter<InAppPurchaseState> emit) async {
+    for (var purchaseDetails in event.purchaseDetailsList) {
+      if (purchaseDetails.status == PurchaseStatus.pending) {
+        emit(state.copyWith(status: InAppPurchaseStatus.loading));
+      } else if (purchaseDetails.status == PurchaseStatus.error) {
+        emit(state.copyWith(
+            status: InAppPurchaseStatus.error,
+            error: purchaseDetails.error!.message));
+      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+          purchaseDetails.status == PurchaseStatus.restored) {
+        final bool valid = await _verifyPurchase(purchaseDetails);
+        if (valid) {
+          if (purchaseDetails.pendingCompletePurchase) {
+            await _iap.completePurchase(purchaseDetails);
+          }
+          emit(state.copyWith(
+            status: purchaseDetails.status == PurchaseStatus.restored
+                ? InAppPurchaseStatus.restored
+                : InAppPurchaseStatus.purchaseComplete,
+            activeSubscription: purchaseDetails,
+          ));
+        } else {
+          emit(state.copyWith(
+              status: InAppPurchaseStatus.error, error: 'Invalid purchase'));
+        }
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        emit(state.copyWith(
+            status: InAppPurchaseStatus.cancelled,
+            error: 'Purchase Cancelled'));
+      }
     }
   }
 
@@ -125,42 +158,6 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     }
   }
 
-  Future<void> _onUpdatePurchases(_InAppPurchaseUpdatePurchasesEvent event,
-      Emitter<InAppPurchaseState> emit) async {
-    for (var purchaseDetails in event.purchaseDetailsList) {
-      if (purchaseDetails.pendingCompletePurchase) {
-        await _iap.completePurchase(purchaseDetails);
-      }
-      if (purchaseDetails.status == PurchaseStatus.pending) {
-        emit(state.copyWith(status: InAppPurchaseStatus.loading));
-      } else if (purchaseDetails.status == PurchaseStatus.error) {
-        emit(state.copyWith(
-            status: InAppPurchaseStatus.error,
-            error: purchaseDetails.error!.message));
-      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-          purchaseDetails.status == PurchaseStatus.restored) {
-        final bool valid = await _verifyPurchase(purchaseDetails);
-        if (valid) {
-          await _iap.completePurchase(purchaseDetails);
-          emit(state.copyWith(
-            status: purchaseDetails.status == PurchaseStatus.restored
-                ? InAppPurchaseStatus.restored
-                : InAppPurchaseStatus.purchaseComplete,
-            activeSubscription: purchaseDetails,
-          ));
-        } else {
-          emit(state.copyWith(
-              status: InAppPurchaseStatus.error, error: 'Invalid purchase'));
-        }
-      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
-        emit(state.copyWith(
-            status: InAppPurchaseStatus.cancelled,
-            error: 'Purchase Cancelled'));
-      }
-    }
-    emit(state.copyWith(status: InAppPurchaseStatus.ready));
-  }
-
   Future<bool> _verifyPurchase(PurchaseDetails purchaseDetails) async {
     return true;
   }
@@ -172,7 +169,7 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
           _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
       await iosPlatformAddition.setDelegate(null);
     }
-    _subscription.cancel();
+    await _subscription.cancel();
     return super.close();
   }
 }
@@ -186,6 +183,6 @@ class PaymentQueueDelegate implements SKPaymentQueueDelegateWrapper {
 
   @override
   bool shouldShowPriceConsent() {
-    return true;
+    return false;
   }
 }
