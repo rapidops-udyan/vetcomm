@@ -10,6 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_stripe: ^11.0.0
+  flutter_bloc: ^8.1.6
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  dio: ^5.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
