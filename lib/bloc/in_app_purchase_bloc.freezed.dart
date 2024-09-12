@@ -105,9 +105,6 @@ class _$InAppPurchaseEventCopyWithImpl<$Res, $Val extends InAppPurchaseEvent>
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
-
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -127,9 +124,6 @@ class __$$InAppPurchaseInitializeEventImplCopyWithImpl<$Res>
       _$InAppPurchaseInitializeEventImpl _value,
       $Res Function(_$InAppPurchaseInitializeEventImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -271,9 +265,6 @@ class __$$InAppPurchaseFetchProductsEventImplCopyWithImpl<$Res>
       _$InAppPurchaseFetchProductsEventImpl _value,
       $Res Function(_$InAppPurchaseFetchProductsEventImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -415,9 +406,6 @@ class __$$InAppPurchaseRestorePurchasesEventImplCopyWithImpl<$Res>
       _$InAppPurchaseRestorePurchasesEventImpl _value,
       $Res Function(_$InAppPurchaseRestorePurchasesEventImpl) _then)
       : super(_value, _then);
-
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -563,8 +551,6 @@ class __$$InAppPurchaseBuyProductEventImplCopyWithImpl<$Res>
       $Res Function(_$InAppPurchaseBuyProductEventImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -614,9 +600,7 @@ class _$InAppPurchaseBuyProductEventImpl
   @override
   int get hashCode => Object.hash(runtimeType, product, oldPurchaseDetails);
 
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$InAppPurchaseBuyProductEventImplCopyWith<
@@ -727,10 +711,7 @@ abstract class _InAppPurchaseBuyProductEvent implements InAppPurchaseEvent {
 
   ProductDetails get product;
   PurchaseDetails? get oldPurchaseDetails;
-
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$InAppPurchaseBuyProductEventImplCopyWith<
           _$InAppPurchaseBuyProductEventImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -756,8 +737,6 @@ class __$$InAppPurchaseUpdatePurchasesEventImplCopyWithImpl<$Res>
       $Res Function(_$InAppPurchaseUpdatePurchasesEventImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -807,9 +786,7 @@ class _$InAppPurchaseUpdatePurchasesEventImpl
   int get hashCode => Object.hash(
       runtimeType, const DeepCollectionEquality().hash(_purchaseDetailsList));
 
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$InAppPurchaseUpdatePurchasesEventImplCopyWith<
@@ -920,10 +897,7 @@ abstract class _InAppPurchaseUpdatePurchasesEvent
       _$InAppPurchaseUpdatePurchasesEventImpl;
 
   List<PurchaseDetails> get purchaseDetailsList;
-
-  /// Create a copy of InAppPurchaseEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$InAppPurchaseUpdatePurchasesEventImplCopyWith<
           _$InAppPurchaseUpdatePurchasesEventImpl>
       get copyWith => throw _privateConstructorUsedError;
@@ -936,9 +910,7 @@ mixin _$InAppPurchaseState {
   List<ProductDetails> get products => throw _privateConstructorUsedError;
   PurchaseDetails? get activeSubscription => throw _privateConstructorUsedError;
 
-  /// Create a copy of InAppPurchaseState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   $InAppPurchaseStateCopyWith<InAppPurchaseState> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -966,8 +938,6 @@ class _$InAppPurchaseStateCopyWithImpl<$Res, $Val extends InAppPurchaseState>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of InAppPurchaseState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1020,8 +990,6 @@ class __$$InAppPurchaseStateImplCopyWithImpl<$Res>
       $Res Function(_$InAppPurchaseStateImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of InAppPurchaseState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1099,9 +1067,7 @@ class _$InAppPurchaseStateImpl implements _InAppPurchaseState {
   int get hashCode => Object.hash(runtimeType, status, error,
       const DeepCollectionEquality().hash(_products), activeSubscription);
 
-  /// Create a copy of InAppPurchaseState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$InAppPurchaseStateImplCopyWith<_$InAppPurchaseStateImpl> get copyWith =>
@@ -1124,11 +1090,8 @@ abstract class _InAppPurchaseState implements InAppPurchaseState {
   List<ProductDetails> get products;
   @override
   PurchaseDetails? get activeSubscription;
-
-  /// Create a copy of InAppPurchaseState
-  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$InAppPurchaseStateImplCopyWith<_$InAppPurchaseStateImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
