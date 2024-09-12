@@ -30,11 +30,6 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     emit(state.copyWith(status: InAppPurchaseStatus.loading));
 
     final isAvailable = await _iap.isAvailable();
-    if (Platform.isIOS) {
-      final iosPlatformAddition =
-      _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
-      await iosPlatformAddition.setDelegate(PaymentQueueDelegate());
-    }
     if (!isAvailable) {
       emit(state.copyWith(
           status: InAppPurchaseStatus.error,
@@ -42,8 +37,14 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
       return;
     }
 
+    if (Platform.isIOS) {
+      final iosPlatformAddition =
+          _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+      await iosPlatformAddition.setDelegate(PaymentQueueDelegate());
+    }
+
     _subscription = _iap.purchaseStream.listen(
-          (purchases) => add(InAppPurchaseEvent.updatePurchases(purchases)),
+      (purchases) => add(InAppPurchaseEvent.updatePurchases(purchases)),
       onDone: () => _subscription.cancel(),
       onError: (error) => emit(state.copyWith(
           status: InAppPurchaseStatus.error, error: error.toString())),
@@ -56,7 +57,7 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
   Future<void> _onFetchProducts(_InAppPurchaseFetchProductsEvent event,
       Emitter<InAppPurchaseState> emit) async {
     final ProductDetailsResponse response =
-    await _iap.queryProductDetails(productIds);
+        await _iap.queryProductDetails(productIds);
 
     if (response.error != null) {
       emit(state.copyWith(
@@ -70,17 +71,23 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
 
   Future<void> _onRestorePurchases(_InAppPurchaseRestorePurchasesEvent event,
       Emitter<InAppPurchaseState> emit) async {
-    await _iap.restorePurchases();
+    try {
+      await _iap.restorePurchases();
+    } catch (e) {
+      emit(state.copyWith(
+          status: InAppPurchaseStatus.error,
+          error: 'Failed to restore purchases: ${e.toString()}'));
+    }
   }
 
   Future<void> _onBuyProduct(_InAppPurchaseBuyProductEvent event,
       Emitter<InAppPurchaseState> emit) async {
     final PurchaseParam purchaseParam =
-    _buildPurchaseParam(event.product, event.oldPurchaseDetails);
+        _buildPurchaseParam(event.product, event.oldPurchaseDetails);
 
     try {
       final bool success =
-      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+          await _iap.buyNonConsumable(purchaseParam: purchaseParam);
       if (!success) {
         emit(state.copyWith(
             status: InAppPurchaseStatus.error, error: 'Purchase failed'));
@@ -89,6 +96,40 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
       emit(state.copyWith(
           status: InAppPurchaseStatus.error,
           error: 'Failed to make purchase: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onUpdatePurchases(_InAppPurchaseUpdatePurchasesEvent event,
+      Emitter<InAppPurchaseState> emit) async {
+    for (var purchaseDetails in event.purchaseDetailsList) {
+      if (purchaseDetails.status == PurchaseStatus.pending) {
+        emit(state.copyWith(status: InAppPurchaseStatus.loading));
+      } else if (purchaseDetails.status == PurchaseStatus.error) {
+        emit(state.copyWith(
+            status: InAppPurchaseStatus.error,
+            error: purchaseDetails.error!.message));
+      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+          purchaseDetails.status == PurchaseStatus.restored) {
+        final bool valid = await _verifyPurchase(purchaseDetails);
+        if (valid) {
+          if (purchaseDetails.pendingCompletePurchase) {
+            await _iap.completePurchase(purchaseDetails);
+          }
+          emit(state.copyWith(
+            status: purchaseDetails.status == PurchaseStatus.restored
+                ? InAppPurchaseStatus.restored
+                : InAppPurchaseStatus.purchaseComplete,
+            activeSubscription: purchaseDetails,
+          ));
+        } else {
+          emit(state.copyWith(
+              status: InAppPurchaseStatus.error, error: 'Invalid purchase'));
+        }
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        emit(state.copyWith(
+            status: InAppPurchaseStatus.cancelled,
+            error: 'Purchase Cancelled'));
+      }
     }
   }
 
@@ -117,45 +158,18 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     }
   }
 
-  Future<void> _onUpdatePurchases(_InAppPurchaseUpdatePurchasesEvent event,
-      Emitter<InAppPurchaseState> emit) async {
-    for (var purchaseDetails in event.purchaseDetailsList) {
-      if (purchaseDetails.status == PurchaseStatus.pending) {
-        emit(state.copyWith(status: InAppPurchaseStatus.loading));
-      } else if (purchaseDetails.status == PurchaseStatus.error) {
-        emit(state.copyWith(
-            status: InAppPurchaseStatus.error,
-            error: purchaseDetails.error!.message));
-      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-          purchaseDetails.status == PurchaseStatus.restored) {
-        final bool valid = await _verifyPurchase(purchaseDetails);
-        if (valid) {
-          await _iap.completePurchase(purchaseDetails);
-          emit(state.copyWith(
-            status: purchaseDetails.status == PurchaseStatus.restored
-                ? InAppPurchaseStatus.restored
-                : InAppPurchaseStatus.purchaseComplete,
-            activeSubscription: purchaseDetails,
-          ));
-        } else {
-          emit(state.copyWith(
-              status: InAppPurchaseStatus.error, error: 'Invalid purchase'));
-        }
-      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
-        emit(state.copyWith(
-            status: InAppPurchaseStatus.cancelled, error: 'Purchase Cancelled'));
-      }
-    }
-    emit(state.copyWith(status: InAppPurchaseStatus.ready));
-  }
-
   Future<bool> _verifyPurchase(PurchaseDetails purchaseDetails) async {
     return true;
   }
 
   @override
-  Future<void> close() {
-    _subscription.cancel();
+  Future<void> close() async {
+    if (Platform.isIOS) {
+      final iosPlatformAddition =
+          _iap.getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+      await iosPlatformAddition.setDelegate(null);
+    }
+    await _subscription.cancel();
     return super.close();
   }
 }
@@ -169,6 +183,6 @@ class PaymentQueueDelegate implements SKPaymentQueueDelegateWrapper {
 
   @override
   bool shouldShowPriceConsent() {
-    return true;
+    return false;
   }
 }
