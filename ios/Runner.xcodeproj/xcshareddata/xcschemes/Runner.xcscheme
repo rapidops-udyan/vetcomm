@@ -71,7 +71,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../InAppPurchase.storekit">
+         identifier = "../Vetcomm.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction

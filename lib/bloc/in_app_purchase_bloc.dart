@@ -97,7 +97,7 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
     } catch (e) {
       emit(state.copyWith(
           status: InAppPurchaseStatus.error,
-          error: 'Failed to make purchase: ${e.toString()}'));
+          error: 'Failed to make purchase: ${(e as SKError).code}${(e as SKError).userInfo}${(e as SKError).domain}'));
     }
   }
 
@@ -131,6 +131,11 @@ class InAppPurchaseBloc extends Bloc<InAppPurchaseEvent, InAppPurchaseState> {
   Future<void> _onUpdatePurchases(_InAppPurchaseUpdatePurchasesEvent event,
       Emitter<InAppPurchaseState> emit) async {
     for (var purchaseDetails in event.purchaseDetailsList) {
+      print(purchaseDetails.status);
+      print(purchaseDetails.productID);
+      print(purchaseDetails.purchaseID);
+      print(purchaseDetails.pendingCompletePurchase);
+      print(purchaseDetails.error);
       if (purchaseDetails.status == PurchaseStatus.pending) {
         emit(state.copyWith(status: InAppPurchaseStatus.loading));
       } else {
